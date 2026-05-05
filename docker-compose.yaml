@@ -23,7 +23,7 @@ services:
     ports:
       - "3100:3100"
     volumes:
-      - ./loki/config.yaml:/etc/loki/config.yaml   # filename fixed
+      - ./loki/config.yaml:/etc/loki/config.yaml
       - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml
     networks:
@@ -33,7 +33,7 @@ services:
     container_name: tempo
     image: grafana/tempo:latest
     ports:
-      - "3200:3200"   # Tempo HTTP API only — OTLP ports removed (handled by otel-collector)
+      - "3200:3200"
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml
       - tempo_data:/var/tempo
@@ -44,6 +44,7 @@ services:
   pyroscope:
     container_name: pyroscope
     image: grafana/pyroscope:latest
+    user: "0"
     ports:
       - "4040:4040"
     volumes:
@@ -64,8 +65,8 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--web.enable-remote-write-receiver'  # required for Tempo metrics_generator
-      - '--enable-feature=native-histograms'   # required for scrape_native_histograms
+      - '--web.enable-remote-write-receiver'
+      - '--enable-feature=native-histograms'   
     volumes:
       - ./prometheus/config.yaml:/etc/prometheus/prometheus.yaml:ro
       - prometheus_data:/prometheus
