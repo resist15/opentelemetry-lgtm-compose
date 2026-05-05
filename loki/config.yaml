@@ -2,14 +2,15 @@ auth_enabled: false
 
 server:
   http_listen_port: 3100
+  grpc_listen_port: 9096
 
 common:
-  instance_addr: 0.0.0.0
-  path_prefix: /data/loki
+  instance_addr: 127.0.0.1
+  path_prefix: /loki
   storage:
     filesystem:
-      chunks_directory: /data/loki/chunks
-      rules_directory: /data/loki/rules
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
   replication_factor: 1
   ring:
     kvstore:
@@ -26,6 +27,7 @@ schema_config:
         period: 24h
 
 pattern_ingester:
+  enabled: true
   lifecycler:
     min_ready_duration: 1s
 
@@ -39,3 +41,7 @@ frontend:
 
 query_scheduler:
   use_scheduler_ring: false
+
+limits_config:
+  allow_structured_metadata: true  # required for OTLP log ingestion
+  volume_enabled: true

@@ -1,0 +1,39 @@
+target: all
+
+server:
+  http_listen_port: 4040
+  grpc_listen_port: 9097
+
+memberlist:
+  bind_port: 7948
+
+storage:
+  backend: filesystem
+  filesystem:
+    dir: /data/pyroscope/shared
+
+ingester:
+  lifecycler:
+    address: 127.0.0.1
+    ring:
+      kvstore:
+        store: inmemory
+      replication_factor: 1
+    min_ready_duration: 1s
+
+distributor:
+  ring:
+    kvstore:
+      store: inmemory
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
+
+compactor:
+  sharding_ring:
+    kvstore:
+      store: inmemory
+
+analytics:
+  reporting_enabled: false
