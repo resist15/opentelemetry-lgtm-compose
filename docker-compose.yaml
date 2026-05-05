@@ -1,17 +1,14 @@
 services:
 
   otel-collector:
+    container_name: otel-collector
     image: otel/opentelemetry-collector-contrib:latest
+    command: ["--config=/etc/otelcol-contrib/config.yaml", "--feature-gates=service.profilesSupport"]
     volumes:
       - ./otel/config.yaml:/etc/otelcol-contrib/config.yaml
     ports:
-      - "1888:1888"
-      - "8888:8888"
-      - "8889:8889"
-      - "13133:13133"
-      - "4317:4317"   # OTLP gRPC receiver  ← only exposed here, NOT on tempo
-      - "4318:4318"   # OTLP HTTP receiver  ← only exposed here, NOT on tempo
-      - "55679:55679"
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
     networks:
       - monitoring
     depends_on:
@@ -21,20 +18,22 @@ services:
       - pyroscope
 
   loki:
+    container_name: loki
     image: grafana/loki:latest
     ports:
       - "3100:3100"
     volumes:
-      - ./loki/config.yaml:/etc/loki/config.yaml
+      - ./loki/config.yaml:/etc/loki/config.yaml   # filename fixed
       - loki_data:/loki
     command: -config.file=/etc/loki/config.yaml
     networks:
       - monitoring
 
   tempo:
+    container_name: tempo
     image: grafana/tempo:latest
     ports:
-      - "3200:3200"
+      - "3200:3200"   # Tempo HTTP API only — OTLP ports removed (handled by otel-collector)
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml
       - tempo_data:/var/tempo
@@ -43,6 +42,7 @@ services:
       - monitoring
 
   pyroscope:
+    container_name: pyroscope
     image: grafana/pyroscope:latest
     ports:
       - "4040:4040"
@@ -64,8 +64,8 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
       - '--web.enable-lifecycle'
-      - '--web.enable-remote-write-receiver'
-      - '--enable-feature=native-histograms'
+      - '--web.enable-remote-write-receiver'  # required for Tempo metrics_generator
+      - '--enable-feature=native-histograms'   # required for scrape_native_histograms
     volumes:
       - ./prometheus/config.yaml:/etc/prometheus/prometheus.yaml:ro
       - prometheus_data:/prometheus
@@ -90,6 +90,7 @@ services:
       - GF_USERS_ALLOW_SIGN_UP=false
       - GF_SERVER_ROOT_URL=http://localhost:3000
       - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-piechart-panel,grafana-pyroscope-app
+      - GF_PLUGINS_PREINSTALL_SYNC=grafana-pyroscope-app
       - GF_FEATURE_TOGGLES_ENABLE=publicDashboards
       - GF_SMTP_ENABLED=false
     volumes:

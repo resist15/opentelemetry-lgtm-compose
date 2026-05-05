@@ -32,22 +32,22 @@ processors:
     send_batch_size: 1000
 
 exporters:
-  otlphttp/metrics:
+  otlp_http/metrics:
     endpoint: http://prometheus:9090/api/v1/otlp
     tls:
       insecure: true
 
-  otlphttp/traces:
+  otlp_http/traces:
     endpoint: http://tempo:4418   # Tempo's internal OTLP HTTP port (not 4318 — that's the host port)
     tls:
       insecure: true
 
-  otlphttp/logs:
+  otlp_http/logs:
     endpoint: http://loki:3100/otlp
     tls:
       insecure: true
 
-  otlphttp/profiles:
+  otlp_http/profiles:
     endpoint: http://pyroscope:4040
     tls:
       insecure: true
@@ -62,20 +62,28 @@ exporters:
 
 service:
   extensions: [health_check, pprof, zpages]
+  telemetry:
+    metrics:
+      level: detailed
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/traces]
+      exporters: [otlp_http/traces]
     metrics:
       receivers: [otlp, prometheus/collector]
       processors: [batch]
-      exporters: [otlphttp/metrics]
+      exporters: [otlp_http/metrics]
     logs:
       receivers: [otlp]
       processors: [batch]
-      exporters: [otlphttp/logs]
+      exporters: [otlp_http/logs]
     profiles:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [otlphttp/profiles]
+      exporters: [otlp_http/profiles]
