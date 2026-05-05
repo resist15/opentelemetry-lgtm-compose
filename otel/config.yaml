@@ -8,82 +8,64 @@ receivers:
         cors:
           allowed_origins:
             - http://*
-            - https://*
   prometheus/collector:
     config:
       scrape_configs:
         - job_name: "opentelemetry-collector"
-          scrape_interval: 15s
+          scrape_interval: 1s
           static_configs:
-            - targets: ["127.0.0.1:8888"]
+            - targets: ["0.0.0.0:8888"]
 
 extensions:
   health_check:
     endpoint: 0.0.0.0:13133
     path: "/ready"
-  pprof:
-    endpoint: 0.0.0.0:1888
-  zpages:
-    endpoint: 0.0.0.0:55679
 
 processors:
   batch:
-    timeout: 5s
-    send_batch_size: 1000
 
 exporters:
   otlp_http/metrics:
     endpoint: http://prometheus:9090/api/v1/otlp
     tls:
       insecure: true
-
   otlp_http/traces:
-    endpoint: http://tempo:4418   # Tempo's internal OTLP HTTP port (not 4318 — that's the host port)
+    endpoint: http://tempo:4418
     tls:
       insecure: true
-
   otlp_http/logs:
     endpoint: http://loki:3100/otlp
     tls:
       insecure: true
-
-  otlp_http/profiles:
+  otlp/profiles:
     endpoint: http://pyroscope:4040
     tls:
       insecure: true
-
-  # Uncomment any of these for verbose debug output:
-  # debug/metrics:
-  #   verbosity: detailed
-  # debug/traces:
-  #   verbosity: detailed
-  # debug/logs:
-  #   verbosity: detailed
+  debug/metrics:
+    verbosity: detailed
+  debug/traces:
+    verbosity: detailed
+  debug/logs:
+    verbosity: detailed
 
 service:
-  extensions: [health_check, pprof, zpages]
-  telemetry:
-    metrics:
-      level: detailed
-      readers:
-        - pull:
-            exporter:
-              prometheus:
-                host: 0.0.0.0
-                port: 8888
+  extensions: [health_check]
   pipelines:
     traces:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/traces]
+      #exporters: [otlp_http/traces,debug/traces]
     metrics:
       receivers: [otlp, prometheus/collector]
       processors: [batch]
       exporters: [otlp_http/metrics]
+      #exporters: [otlp_http/metrics,debug/metrics]
     logs:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/logs]
+      #exporters: [otlp_http/logs,debug/logs]
     profiles:
       receivers: [otlp]
-      exporters: [otlp_http/profiles]
+      exporters: [otlp/profiles]

@@ -2,7 +2,7 @@ server:
   grpc_listen_port: 9097
 
 metastore:
-  address: 127.0.0.1:9097
+  address: 0.0.0.0:9097
   min_ready_duration: 1s
   data_dir: /data/pyroscope/metastore/data
   raft:
@@ -29,4 +29,4 @@ segment_writer:
     min_ready_duration: 1s
 
 query_backend:
-  address: 127.0.0.1:9097
+  address: 0.0.0.0:9097
