@@ -8,13 +8,6 @@ receivers:
         cors:
           allowed_origins:
             - http://*
-  prometheus/collector:
-    config:
-      scrape_configs:
-        - job_name: "opentelemetry-collector"
-          scrape_interval: 1s
-          static_configs:
-            - targets: ["0.0.0.0:8888"]
 
 extensions:
   health_check:
@@ -49,6 +42,14 @@ exporters:
     verbosity: detailed
 
 service:
+  telemetry:
+    metrics:
+      readers:
+        - pull:
+            exporter:
+              prometheus:
+                host: 0.0.0.0
+                port: 8888
   extensions: [health_check]
   pipelines:
     traces:
@@ -57,7 +58,7 @@ service:
       exporters: [otlp_http/traces]
       #exporters: [otlp_http/traces,debug/traces]
     metrics:
-      receivers: [otlp, prometheus/collector]
+      receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/metrics]
       #exporters: [otlp_http/metrics,debug/metrics]
