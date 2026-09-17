@@ -43,5 +43,5 @@ query_scheduler:
   use_scheduler_ring: false
 
 limits_config:
-  allow_structured_metadata: true  # required for OTLP log ingestion
+  allow_structured_metadata: true
   volume_enabled: true

@@ -34,12 +34,6 @@ exporters:
     endpoint: http://pyroscope:4040
     tls:
       insecure: true
-  debug/metrics:
-    verbosity: detailed
-  debug/traces:
-    verbosity: detailed
-  debug/logs:
-    verbosity: detailed
 
 service:
   telemetry:
@@ -56,17 +50,14 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/traces]
-      #exporters: [otlp_http/traces,debug/traces]
     metrics:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/metrics]
-      #exporters: [otlp_http/metrics,debug/metrics]
     logs:
       receivers: [otlp]
       processors: [batch]
       exporters: [otlp_http/logs]
-      #exporters: [otlp_http/logs,debug/logs]
     profiles:
       receivers: [otlp]
       exporters: [otlp/profiles]
