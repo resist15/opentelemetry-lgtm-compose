@@ -1,4 +1,16 @@
 services:
+  init-permissions:
+    image: busybox:latest
+    user: "0:0"
+    volumes:
+      - ./data/loki:/data/loki
+      - ./data/tempo:/data/tempo
+      - ./data/pyroscope:/data/pyroscope
+      - ./data/prometheus:/data/prometheus
+      - ./data/grafana:/data/grafana
+      - ./init-permissions.sh:/init-permissions.sh
+    entrypoint: ["sh", "/init-permissions.sh"]
+
   otel-collector:
     image: otel/opentelemetry-collector-contrib:latest
     restart: unless-stopped
@@ -34,6 +46,9 @@ services:
     command: -config.file=/etc/loki/config.yaml
     networks:
       - monitoring
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3100/ready"]
       interval: 30s
@@ -54,6 +69,9 @@ services:
     command: -config.file=/etc/tempo/config.yaml
     networks:
       - monitoring
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:3200/ready"]
       interval: 30s
@@ -74,6 +92,9 @@ services:
     command: -config.file=/etc/pyroscope/config.yaml
     networks:
       - monitoring
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:4040/ready"]
       interval: 30s
@@ -104,6 +125,9 @@ services:
       - ./data/prometheus:/prometheus
     networks:
       - monitoring
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -131,14 +155,20 @@ services:
       - ./data/grafana:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     ports:
-      - "127.0.0.1:3000:3000"
+      - "3003:3000"
     networks:
       - monitoring
     depends_on:
-      - prometheus
-      - loki
-      - tempo
-      - pyroscope
+      init-permissions:
+        condition: service_completed_successfully
+      prometheus:
+        condition: service_started
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      pyroscope:
+        condition: service_started
     healthcheck:
       test:
         ["CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health"]
