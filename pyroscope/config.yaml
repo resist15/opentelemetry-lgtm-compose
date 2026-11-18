@@ -15,9 +15,12 @@ limits:
   write_path: segment-writer
 
 storage:
-  backend: filesystem
-  filesystem:
-    dir: /data/pyroscope/shared
+  backend: s3
+  prefix: pyroscope
+  s3:
+    endpoint: s3.${AWS_REGION}.amazonaws.com
+    region: ${AWS_REGION}
+    bucket_name: ${S3_BUCKET}
 
 distributor:
   ring:

@@ -19,7 +19,7 @@ processors:
 
 exporters:
   otlp_http/metrics:
-    endpoint: http://prometheus:9090/api/v1/otlp
+    endpoint: http://mimir:9009/otlp
     tls:
       insecure: true
   otlp_http/traces:

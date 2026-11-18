@@ -6,6 +6,7 @@ services:
       - ./data/loki:/data/loki
       - ./data/tempo:/data/tempo
       - ./data/pyroscope:/data/pyroscope
+      - ./data/mimir:/data/mimir
       - ./data/prometheus:/data/prometheus
       - ./data/grafana:/data/grafana
       - ./init-permissions.sh:/init-permissions.sh
@@ -29,6 +30,7 @@ services:
     depends_on:
       - loki
       - tempo
+      - mimir
       - prometheus
       - pyroscope
     deploy:
@@ -43,7 +45,12 @@ services:
     volumes:
       - ./loki/config.yaml:/etc/loki/config.yaml
       - ./data/loki:/loki
-    command: -config.file=/etc/loki/config.yaml
+    command: -config.file=/etc/loki/config.yaml -config.expand-env=true
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET=${S3_BUCKET}
     networks:
       - monitoring
     depends_on:
@@ -67,7 +74,12 @@ services:
     volumes:
       - ./tempo/config.yaml:/etc/tempo/config.yaml
       - ./data/tempo:/var/tempo
-    command: -config.file=/etc/tempo/config.yaml
+    command: -config.file=/etc/tempo/config.yaml -config.expand-env=true
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET=${S3_BUCKET}
     networks:
       - monitoring
     depends_on:
@@ -90,7 +102,12 @@ services:
     volumes:
       - ./pyroscope/config.yaml:/etc/pyroscope/config.yaml
       - ./data/pyroscope:/data/pyroscope
-    command: -config.file=/etc/pyroscope/config.yaml
+    command: -config.file=/etc/pyroscope/config.yaml -config.expand-env=true
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET=${S3_BUCKET}
     networks:
       - monitoring
     depends_on:
@@ -106,21 +123,38 @@ services:
         limits:
           memory: 1g
 
+  mimir:
+    image: grafana/mimir:latest
+    restart: unless-stopped
+    user: "10001:10001"
+    volumes:
+      - ./mimir/config.yaml:/etc/mimir/config.yaml
+      - ./data/mimir:/data
+    command: -config.file=/etc/mimir/config.yaml -config.expand-env=true
+    environment:
+      - AWS_REGION=${AWS_REGION}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET=${S3_BUCKET}
+    networks:
+      - monitoring
+    depends_on:
+      init-permissions:
+        condition: service_completed_successfully
+    deploy:
+      resources:
+        limits:
+          memory: 1g
+
   prometheus:
     image: prom/prometheus:latest
     restart: unless-stopped
     user: "65534:65534"
     command:
       - "--config.file=/etc/prometheus/prometheus.yaml"
-      - "--storage.tsdb.path=/prometheus"
-      - "--storage.tsdb.retention.time=30d"
-      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
-      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--agent"
+      - "--storage.agent.path=/prometheus"
       - "--web.enable-lifecycle"
-      - "--web.enable-remote-write-receiver"
-      - "--web.enable-otlp-receiver"
-      - "--enable-feature=exemplar-storage"
-
     volumes:
       - ./prometheus/config.yaml:/etc/prometheus/prometheus.yaml:ro
       - ./data/prometheus:/prometheus
@@ -129,6 +163,8 @@ services:
     depends_on:
       init-permissions:
         condition: service_completed_successfully
+      mimir:
+        condition: service_started
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy"]
       interval: 30s
@@ -162,7 +198,7 @@ services:
     depends_on:
       init-permissions:
         condition: service_completed_successfully
-      prometheus:
+      mimir:
         condition: service_started
       loki:
         condition: service_started
